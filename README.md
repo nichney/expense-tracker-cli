@@ -7,6 +7,7 @@ A simple command-line interface (CLI) expense tracker written in Python that all
 ## Features
 - Add a new expense with a description and amount.
 - Remove an expense by ID.
+- Update an expense.
 - List all expenses in a formatted table.
 - Summarize expenses for a specific month.
 - Stores expenses persistently in `expenses.json`.

@@ -45,6 +45,18 @@ def on_remove(args) -> None:
         else:
             print(f'Task with id {args.id} not found')
 
+def on_update(args) -> None:
+    with open_expenses() as all_expenses:
+        for expense in all_expenses:
+            if expense['id'] == args.id:
+                if args.description:
+                    expense['description'] = args.description
+                if args.amount:
+                    expense['amount'] = args.amount
+                return
+        else:
+            print(f'Task with id {args.id} not found')
+
 def list_expenses(args) -> None:
     with open_expenses() as all_expenses:
     
@@ -95,8 +107,14 @@ if __name__ == '__main__':
     add_parser.set_defaults(func=on_add)
 
     delete_parser = subparsers.add_parser('delete', help='Remove an expense')
-    delete_parser.add_argument('--id', type=int, hrequired=True, help='Expense id')
+    delete_parser.add_argument('--id', type=int, required=True, help='Expense id')
     delete_parser.set_defaults(func=on_remove)
+
+    update_parser = subparsers.add_parser('update', help='Update an expense')
+    update_parser.add_argument('--id', type=int, required=True, help='Expense id')
+    update_parser.add_argument('--description', nargs='+' , help='Expense description')
+    update_parser.add_argument('--amount', type=int, help='Expense amount')
+    update_parser.set_defaults(func=on_update)
 
     list_parser = subparsers.add_parser('list', help='List expenses')
     list_parser.set_defaults(func=list_expenses)
