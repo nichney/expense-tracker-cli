@@ -1,0 +1,109 @@
+#!/usr/bin/python
+# A simple CLI expense tracker
+import argparse, json, datetime
+from contextlib import contextmanager
+
+@contextmanager
+def open_expenses():
+    expenses = []
+    try:
+        with open('expenses.json', 'r') as f:
+            expenses = json.load(f)
+    except Exception as e:
+            expenses = []
+
+    yield expenses
+
+    try:
+        with open('expenses.json', 'w') as f:
+            json.dump(expenses, f)
+    except Exception as e:
+        print(f'Error while writing json to file: {e}')
+
+def on_add(args) -> None:
+    with open_expenses() as all_expenses:
+        if all_expenses:
+            last_id = all_expenses[-1]['id']
+        else:
+            last_id = 0
+        expense_text = ' '.join(args.description)
+        if not expense_text:
+            print('Error: the description cannot be empty')
+            return
+        all_expenses.append({ 'id': last_id+1,
+                     'description': expense_text,
+                     'amount': args.amount,
+                     'date': str(datetime.date.today()),
+                })
+
+def on_remove(args) -> None:
+    with open_expenses() as all_expenses:
+        for expense in all_expenses:
+            if expense['id'] == args.id:
+                all_expenses.remove(expense)
+                return
+        else:
+            print(f'Task with id {args.id} not found')
+
+def list_expenses(args) -> None:
+    with open_expenses() as all_expenses:
+    
+        ID_WIDTH = 5
+        DESC_WIDTH = max((len(expense['description']) for expense in all_expenses), default=20)
+        AMOUNT_WIDTH = 15
+        TIME_WIDTH = 20
+        header = (
+            f"{'ID'.ljust(ID_WIDTH)} | "
+            f"{'Description'.ljust(DESC_WIDTH)} | "
+            f"{'Amount'.ljust(AMOUNT_WIDTH)} | "
+            f"{'Date'.ljust(TIME_WIDTH)} | "
+        )
+        print(header)
+        print('-' * len(header))
+
+        for expense in all_expenses:
+            row = (
+                f"{str(expense['id']).ljust(ID_WIDTH)} | "
+                f"{expense['description'].ljust(DESC_WIDTH)} | "
+                f"{str(expense['amount']).ljust(AMOUNT_WIDTH)} | "
+                f"{expense['date'].ljust(TIME_WIDTH)} | "
+            )
+            print(row)
+
+def summary_expenses(args) -> None:
+    months = ['January', 'Febrary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    with open_expenses() as all_expenses:
+        amount = 0
+        needed_expenses = [expense for expense in all_expenses if int(expense['date'].split('-')[1]) == args.month] if args.month else all_expenses
+
+        for expense in needed_expenses:
+            amount += expense['amount']
+        print(f'Total expenses for {months[args.month-1]}: ${amount}') if args.month else print(f'Total expenses: ${amount}')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            prog='expense-tracker',
+            description='A simple CLI expense tracker'
+            )
+    subparsers = parser.add_subparsers(required=True)
+
+
+    add_parser = subparsers.add_parser('add', help='Add a new expense')
+    add_parser.add_argument('--description', nargs='+', required=True, help='Expense description')
+    add_parser.add_argument('--amount', type=int, required=True, help='Expense amount')
+    add_parser.set_defaults(func=on_add)
+
+    delete_parser = subparsers.add_parser('delete', help='Remove an expense')
+    delete_parser.add_argument('--id', type=int, hrequired=True, help='Expense id')
+    delete_parser.set_defaults(func=on_remove)
+
+    list_parser = subparsers.add_parser('list', help='List expenses')
+    list_parser.set_defaults(func=list_expenses)
+
+    summary_parser = subparsers.add_parser('summary', help='Summary expenses')
+    summary_parser.add_argument('--month', type=int, nargs='?', help='Show summary')
+    summary_parser.set_defaults(func=summary_expenses)
+
+    args = parser.parse_args()
+    args.func(args)
