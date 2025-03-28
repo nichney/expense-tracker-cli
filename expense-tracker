@@ -46,6 +46,16 @@ def export_to_csv(args) -> None:
             for row in all_expenses:
                 writer.writerow(row)
 
+def import_from_csv(args) -> None:
+    csv_filename = args.file if args.file else 'export.csv'
+    delimiter = args.delimiter if args.delimiter else ','
+    with open_expenses() as all_expenses:
+        all_expenses.clear()
+        with open(csv_filename, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=delimiter, quotechar='"')
+            for row in reader:
+                all_expenses.append(row)
+    
 
 def on_remove(args) -> None:
     with open_expenses() as all_expenses:
@@ -160,6 +170,16 @@ if __name__ == '__main__':
                 {'name': '--delimiter', 'help': 'Delimiter in csv file'}
             ],
             'func': export_to_csv
+
+        },
+        {   'name': 'import',
+            'help': 'import expenses from csv',
+            'arguments': [
+                {'name': '--file', 'help': 'CSV filename'},
+                {'name': '--delimiter', 'help': 'Delimiter in csv file'}
+            ],
+            'func': import_from_csv
+
 
         }
     ]
