@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # A simple CLI expense tracker
-import argparse, json, datetime
+import argparse, json, datetime, csv
 from contextlib import contextmanager
 
 @contextmanager
@@ -35,6 +35,17 @@ def on_add(args) -> None:
                      'amount': args.amount,
                      'date': str(datetime.date.today()),
                 })
+
+def export_to_csv(args) -> None:
+    csv_filename = args.file if args.file else 'export.csv'
+    delimiter = args.delimiter if args.delimiter else ','
+    with open_expenses() as all_expenses:
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=[k for k in all_expenses[0].keys()], delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writeheader()
+            for row in all_expenses:
+                writer.writerow(row)
+
 
 def on_remove(args) -> None:
     with open_expenses() as all_expenses:
@@ -141,6 +152,15 @@ if __name__ == '__main__':
                 {'name': '--month', 'type': int, 'nargs': '?', 'help': 'Show summary'}
             ],
             'func': summary_expenses
+        },
+        {   'name': 'export',
+            'help': 'export expenses to csv file',
+            'arguments': [
+                {'name': '--file', 'help': 'Filename for export'},
+                {'name': '--delimiter', 'help': 'Delimiter in csv file'}
+            ],
+            'func': export_to_csv
+
         }
     ]
     
