@@ -34,6 +34,7 @@ def on_add(args) -> None:
                      'description': expense_text,
                      'amount': args.amount,
                      'date': str(datetime.date.today()),
+                     'category': args.category if args.category else 'Other'
                 })
 
 def export_to_csv(args) -> None:
@@ -74,6 +75,8 @@ def on_update(args) -> None:
                     expense['description'] = args.description
                 if args.amount:
                     expense['amount'] = args.amount
+                if args.category:
+                    expense['category'] = args.category
                 return
         else:
             print(f'Task with id {args.id} not found')
@@ -85,11 +88,13 @@ def list_expenses(args) -> None:
         DESC_WIDTH = max((len(expense['description']) for expense in all_expenses), default=20)
         AMOUNT_WIDTH = 15
         TIME_WIDTH = 20
+        CATEGORY_WIDTH = 20
         header = (
             f"{'ID'.ljust(ID_WIDTH)} | "
             f"{'Description'.ljust(DESC_WIDTH)} | "
             f"{'Amount'.ljust(AMOUNT_WIDTH)} | "
             f"{'Date'.ljust(TIME_WIDTH)} | "
+            f"{'Category'.ljust(CATEGORY_WIDTH)} | "
         )
         print(header)
         print('-' * len(header))
@@ -100,19 +105,29 @@ def list_expenses(args) -> None:
                 f"{expense['description'].ljust(DESC_WIDTH)} | "
                 f"{str(expense['amount']).ljust(AMOUNT_WIDTH)} | "
                 f"{expense['date'].ljust(TIME_WIDTH)} | "
+                f"{expense['category'].ljust(CATEGORY_WIDTH)} |"
             )
             print(row)
 
 def summary_expenses(args) -> None:
     months = ['January', 'Febrary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     with open_expenses() as all_expenses:
-        amount = 0
-        needed_expenses = [expense for expense in all_expenses if int(expense['date'].split('-')[1]) == args.month and int(expense['date'].split('-')[0]) == datetime.date.today().year] if args.month else all_expenses
+        current_year = datetime.date.today().year
+        needed_expenses = [
+            expense for expense in all_expenses
+            if (
+                (not args.month or int(expense['date'].split('-')[1]) == args.month) and
+                (not args.category or expense['category'] == args.category) and
+                int(expense['date'].split('-')[0]) == current_year
+            )
+        ]
 
-        for expense in needed_expenses:
-            amount += expense['amount']
-        print(f'Total expenses for {months[args.month-1]}: ${amount}') if args.month else print(f'Total expenses: ${amount}')
+        total_amount = sum(expense['amount'] for expense in needed_expenses)
 
+        if args.month:
+            print(f'Total expenses for {months[args.month-1]}: ${total_amount}')
+        else:
+            print(f'Total expenses: ${total_amount}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -127,7 +142,8 @@ if __name__ == '__main__':
             'help': 'Add a new expense',
             'arguments': [
                 {'name': '--description', 'nargs': '+', 'required': True, 'help': 'Expense description'},
-                {'name': '--amount', 'type': int, 'required': True, 'help': 'Expense amount'}
+                {'name': '--amount', 'type': int, 'required': True, 'help': 'Expense amount'},
+                {'name': '--category',  'help': 'Expense category'}
             ],
             'func': on_add
         },
@@ -145,7 +161,8 @@ if __name__ == '__main__':
             'arguments': [
                 {'name': '--id', 'type': int, 'required': True, 'help': 'Expense id'},
                 {'name': '--description', 'nargs': '+', 'help': 'Expense description'},
-                {'name': '--amount', 'type': int, 'help': 'Expense amount'}
+                {'name': '--amount', 'type': int, 'help': 'Expense amount'},
+                {'name': '--category',  'help': 'Expense category'}
             ],
             'func': on_update
         },
@@ -159,7 +176,8 @@ if __name__ == '__main__':
             'name': 'summary',
             'help': 'Summary expenses',
             'arguments': [
-                {'name': '--month', 'type': int, 'nargs': '?', 'help': 'Show summary'}
+                {'name': '--month', 'type': int, 'nargs': '?', 'help': 'Show summary'},
+                {'name': '--category',  'help': 'Expense category'}
             ],
             'func': summary_expenses
         },
