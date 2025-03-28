@@ -86,7 +86,7 @@ def summary_expenses(args) -> None:
     months = ['January', 'Febrary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     with open_expenses() as all_expenses:
         amount = 0
-        needed_expenses = [expense for expense in all_expenses if int(expense['date'].split('-')[1]) == args.month] if args.month else all_expenses
+        needed_expenses = [expense for expense in all_expenses if int(expense['date'].split('-')[1]) == args.month and int(expense['date'].split('-')[0]) == datetime.date.today().year] if args.month else all_expenses
 
         for expense in needed_expenses:
             amount += expense['amount']
@@ -99,29 +99,56 @@ if __name__ == '__main__':
             description='A simple CLI expense tracker'
             )
     subparsers = parser.add_subparsers(required=True)
-
-
-    add_parser = subparsers.add_parser('add', help='Add a new expense')
-    add_parser.add_argument('--description', nargs='+', required=True, help='Expense description')
-    add_parser.add_argument('--amount', type=int, required=True, help='Expense amount')
-    add_parser.set_defaults(func=on_add)
-
-    delete_parser = subparsers.add_parser('delete', help='Remove an expense')
-    delete_parser.add_argument('--id', type=int, required=True, help='Expense id')
-    delete_parser.set_defaults(func=on_remove)
-
-    update_parser = subparsers.add_parser('update', help='Update an expense')
-    update_parser.add_argument('--id', type=int, required=True, help='Expense id')
-    update_parser.add_argument('--description', nargs='+' , help='Expense description')
-    update_parser.add_argument('--amount', type=int, help='Expense amount')
-    update_parser.set_defaults(func=on_update)
-
-    list_parser = subparsers.add_parser('list', help='List expenses')
-    list_parser.set_defaults(func=list_expenses)
-
-    summary_parser = subparsers.add_parser('summary', help='Summary expenses')
-    summary_parser.add_argument('--month', type=int, nargs='?', help='Show summary')
-    summary_parser.set_defaults(func=summary_expenses)
+    
+    commands = [
+        {
+            'name': 'add',
+            'help': 'Add a new expense',
+            'arguments': [
+                {'name': '--description', 'nargs': '+', 'required': True, 'help': 'Expense description'},
+                {'name': '--amount', 'type': int, 'required': True, 'help': 'Expense amount'}
+            ],
+            'func': on_add
+        },
+        {
+            'name': 'delete',
+            'help': 'Remove an expense',
+            'arguments': [
+                {'name': '--id', 'type': int, 'required': True, 'help': 'Expense id'}
+            ],
+            'func': on_remove
+        },
+        {
+            'name': 'update',
+            'help': 'Update an expense',
+            'arguments': [
+                {'name': '--id', 'type': int, 'required': True, 'help': 'Expense id'},
+                {'name': '--description', 'nargs': '+', 'help': 'Expense description'},
+                {'name': '--amount', 'type': int, 'help': 'Expense amount'}
+            ],
+            'func': on_update
+        },
+        {
+            'name': 'list',
+            'help': 'List expenses',
+            'arguments': [],
+            'func': list_expenses
+        },
+        {
+            'name': 'summary',
+            'help': 'Summary expenses',
+            'arguments': [
+                {'name': '--month', 'type': int, 'nargs': '?', 'help': 'Show summary'}
+            ],
+            'func': summary_expenses
+        }
+    ]
+    
+    for command in commands:
+        cmd_parser = subparsers.add_parser(command['name'], help=command['help'])
+        for arg in command['arguments']:
+            cmd_parser.add_argument(arg['name'], **{k: v for k, v in arg.items() if k != 'name'})
+        cmd_parser.set_defaults(func=command['func'])
 
     args = parser.parse_args()
     args.func(args)
